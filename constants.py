@@ -1,0 +1,2 @@
+CAPS_ALPHABET = "ABDEFGHIJKLMNOPQRSTUV"
+ALPHABET = "abcdefghijklmnopqrsuvwxyz"
