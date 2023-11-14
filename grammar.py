@@ -188,7 +188,7 @@ class Grammar:
         new_rules.append(rule)
     self.rules = new_rules
     
-  def homskyyi_do(self):
+  def chomsky_do(self):
     self.delete_not_generative()
     self.delete_unreachable()
 
