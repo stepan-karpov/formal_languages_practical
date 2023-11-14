@@ -15,6 +15,14 @@ class Grammar:
     self.start_terminal = start_terminal
     self.found_words = set()
     self.used = set()
+    self.in_normal_form = False
+
+  def copy(self):
+    non_terminals = self.non_terminals.copy()
+    terminals =  self.terminals.copy()
+    rules =  self.rules.copy()
+    start_terminal =  self.start_terminal
+    return Grammar(non_terminals, terminals, rules, start_terminal)
 
   def read_grammar(self):
     self.start_terminal = input()
@@ -30,11 +38,13 @@ class Grammar:
     print("non_terminals: ", self.non_terminals)
     print("terminals: ", self.terminals)
     print("rules: ", end="")
-    for i, rule in enumerate(self.rules):
+    temp = self.rules.copy()
+    temp.sort()
+    for i, rule in enumerate(temp):
       if (rule[1] != ""):
-        print(f'{rule[0]}->{rule[1]}', end=', ' * int(i != len(self.rules) - 1))
+        print(f'{rule[0]}->{rule[1]}', end=', ' * int(i != len(temp) - 1))
       else:
-        print(f'{rule[0]}->""', end=', ' * int(i != len(self.rules) - 1))
+        print(f'{rule[0]}->""', end=', ' * int(i != len(temp) - 1))
     print('\n\n')
 
   @staticmethod
@@ -292,55 +302,80 @@ class Grammar:
           new_rules.append(rule)
           continue
         new_rules.append(rule)
+        if (rule[1] == to_delete_current + to_delete_current):
+          if (rule[0] not in used):
+            queue.append(rule[0])
+            used.add(rule[0])
+          new_rules.append((rule[0], to_delete_current))
+          continue
         right_rule = rule[1].replace(to_delete_current, "")
         if (right_rule == "" and rule[0] not in used):
           queue.append(rule[0])
           used.add(rule[0])
         else:
-          new_rules.append((rule[0], right_rule))
+          if (right_rule != ""):
+            new_rules.append((rule[0], right_rule))
       self.rules = new_rules
 
   def restore_eps(self, has_eps: bool):
     if (has_eps):
       self.rules.append((self.start_terminal, ""))
 
-  def make_closure(self, current_rule: str):
-    if (current_rule in self.used):
-      return []
-    self.used.append(current_rule)
-    if (len(current_rule) == 2 or current_rule.islower()):
-      return [current_rule]
-    forward_rules = []
+  def find_endpoints(self, vertex: str):
+    ans = []
+    for rule in self.rules:
+      if (rule[0] != vertex or rule[1] == ""):
+        continue
+      if ((rule[1].isupper() and len(rule[1]) == 2) or rule[1].islower()):
+        ans.append(rule[1])
+    return ans
 
-    temp = self.rules
+  def make_closure(self, current_start: str):
+    temp = self.rules.copy()
+    self.used_closure[current_start] = True
+
+    to_remove = []
+    to_add = []
     for rule in temp:
-      if (rule[0] == current_rule):
-        forward_rules.extend(self.make_closure(rule[1]))
-    for new_right_rule in forward_rules:
-      if ((current_rule, new_right_rule) not in self.rules):
-        self.rules.append((current_rule, new_right_rule))
-    return forward_rules
+      if (rule[0] == current_start and rule[1] != "" and
+          rule[1].isupper() and len(rule[1]) != 2):
+        if (not self.used_closure[rule[1]]):
+          self.make_closure(rule[1])
+        togo = self.find_endpoints(rule[1])
+        for vertex in togo:
+          to_add.append((rule[0], vertex))
+        to_remove.append(rule)
+    
+    for rule in to_remove:
+      while (rule in self.rules):
+        self.rules.remove(rule)
+
+    for rule in to_add:
+     if (rule not in self.rules):
+        self.rules.append(rule)
+
 
   def transitive_closure(self):
-    self.used = []
-    for rule in self.rules:
-      if (len(rule[1]) == 1):
-        self.make_closure(rule[0])
-        self.rules.remove(rule)
-        break
-    new_rules = []
-    for rule in self.rules:
-      if ((rule[1].islower() and len(rule[1]) == 1) or 
-          (rule[1].isupper() and len(rule[1]) == 2)):
-        new_rules.append(rule)
-    self.rules = new_rules
+    self.used_closure = {}
+    for non_terminal in self.non_terminals:
+      self.used_closure[non_terminal] = False
+
+    for non_terminal in self.non_terminals:
+      self.make_closure(non_terminal)
 
   def remove_conflicts(self):
     for non_terminal in self.non_terminals:
       if ((non_terminal, non_terminal) in self.rules): 
         self.rules.remove((non_terminal, non_terminal))
+    self.rules = list(set(self.rules))
+    new_rules = []
+    for rule in self.rules:
+      if (rule[0] != rule[1]):
+        new_rules.append(rule)
+    self.rules = new_rules
 
   def chomsky_do(self):
+    self.remove_conflicts()
     has_eps = self.has_eps()
     self.delete_not_generative()
     self.delete_unreachable()
@@ -349,10 +384,51 @@ class Grammar:
     self.delete_long_rules()
     self.remove_conflicts()
     self.delete_eps()
-    self.transitive_closure()
     self.restore_eps(has_eps)
-    # self.delete_not_generative()
-    # self.delete_unreachable()
+    self.remove_conflicts()
+    self.transitive_closure()
+    self.in_normal_form = True
+    self.remove_conflicts()
+
+  def cocke_younger_kasami_check(self, word):
+    if (not self.in_normal_form):
+      self.chomsky_do()
+    if (word == ""):
+      return (self.start_terminal, "") in self.rules
+    n = len(word)
+    N = len(self.non_terminals)
+    dp = [[[False for _ in range(n + 1)] for _ in range(n + 1)] for _ in range(N)]
+
+    pos = {}
+    time = 0
+    for non_terminal in self.non_terminals:
+      pos[non_terminal] = time
+      time += 1
+
+    if ((self.start_terminal, "") in self.rules):
+      for i in range(0, n + 1):
+        dp[pos[self.start_terminal]][i][i] = True
+
+    for i in range(0, n):
+      for non_terminal in self.non_terminals:
+        dp[pos[non_terminal]][i][i + 1] = (non_terminal, word[i]) in self.rules
+    
+    for m in range(2, n + 1):
+      for i in range(0, n - m + 1):
+        j = i + m
+        for rule in self.rules:
+          A = pos[rule[0]]
+          if (rule[1].islower() or rule[1] == "" or dp[A][i][j]):
+            continue
+          B = pos[rule[1][0]]
+          C = pos[rule[1][1]]
+          for k in range(i, j + 1):
+            dp[A][i][j] = dp[A][i][j] or (dp[B][i][k] and dp[C][k][j])
+            if (dp[A][i][j]):
+              break
+    
+    return dp[pos[self.start_terminal]][0][n]
+
 
   @staticmethod
   def default_grammar1():
