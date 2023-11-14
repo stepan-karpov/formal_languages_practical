@@ -14,6 +14,7 @@ class Grammar:
     self.rules = rules
     self.start_terminal = start_terminal
     self.found_words = set()
+    self.used = set()
 
   def read_grammar(self):
     self.start_terminal = input()
@@ -39,7 +40,7 @@ class Grammar:
   @staticmethod
   def generate_random_grammar():
     start_terminal = "S"
-    non_terminals = list(CAPS_ALPHABET[:random.randint(2, 3)])
+    non_terminals = list(CAPS_ALPHABET[:random.randint(1, 4)])
     non_terminals.append(start_terminal)
     terminals = list(ALPHABET[:random.randint(3, 5)])
     rules = []
@@ -47,7 +48,7 @@ class Grammar:
       "S",
       ''.join(random.choice(non_terminals + terminals) for _ in range(random.randint(1, 3)))
     ))
-    for i in range(0, random.randint(3, 7)):
+    for i in range(0, random.randint(3, 5)):
       rules.append((
         non_terminals[random.randint(0, len(non_terminals) - 1)],
         ''.join(random.choice(non_terminals + terminals) for _ in range(random.randint(1, 3)))
@@ -61,10 +62,17 @@ class Grammar:
     return True
 
   def backtrack(self, current_word, depth):
+    if (current_word in self.used):
+      return
+    self.used.add(current_word)
+
     if (self.non_terminal_free(current_word)):
       self.found_words.add(current_word)
       return
-    if (depth > 100):
+
+    if (len(current_word) > 50):
+      return
+    if (depth > 5):
       return
 
     for i in range(0, len(current_word)):
@@ -74,11 +82,115 @@ class Grammar:
             self.backtrack(current_word[0:i] + rule[1] + current_word[j + 1:], depth + 1)
 
   def backtrack_words(self):
-    if (len(self.found_words) > 0):
-      return self.found_words
+    self.used = set()
     self.backtrack("S", 0)
     self.found_words = sorted(list(self.found_words), key=len)
     return self.found_words
+
+  def delete_not_generative(self):
+    deleted = set()
+    has_roots = set()
+    rules_non_terminal = []
+    for rule in self.rules:
+      rule_0 = ''.join(char for char in rule[0] if char.isupper())
+      rule_1 = ''.join(char for char in rule[1] if char.isupper())
+
+      rules_non_terminal.append([rule_0, rule_1])
+      if (rule_1 == ""):
+        deleted.add(rule_0)
+        has_roots.add(rule_0)
+
+    # deleted - all not generative elements
+    # rules_non_terminal - rules without terminal symbols
+    can_delete = False
+    for deleted_term in deleted:
+      while [deleted_term, ""] in rules_non_terminal:
+        can_delete = True
+        rules_non_terminal.remove([deleted_term, ""])
+
+    while (can_delete):
+      can_delete = False
+
+      new_delete = set()
+      for i, rule in enumerate(rules_non_terminal):
+        rule_1 = ''.join(char for char in rule[1] if char not in deleted)
+        rules_non_terminal[i][1] = rule_1
+        if (rule_1 == ""):
+          can_delete = True
+          new_delete.add(rule[0])
+          has_roots.add(rule[0])
+          can_delete = False
+
+      deleted = new_delete
+      for deleted_term in deleted:
+        while [deleted_term, ""] in rules_non_terminal:
+          can_delete = True
+          rules_non_terminal.remove([deleted_term, ""])
+
+    new_rules = []
+    for i, rule in enumerate(self.rules):
+      ok = True
+      for letter in rule[0] + rule[1]:
+        if (not (letter.islower() or letter in has_roots)):
+          ok = False
+          break
+      if (ok):
+        new_rules.append(rule)
+    new_non_terminals = []
+    for non_terminal in self.non_terminals:
+      if (non_terminal in has_roots):
+        new_non_terminals.append(non_terminal)
+
+    if ("S" not in new_non_terminals):
+      new_non_terminals.append("S")
+    self.non_terminals = new_non_terminals
+    self.rules = new_rules
+
+  def delete_unreachable(self):
+    used = set("S")
+    rules_non_terminal = []
+    for rule in self.rules:
+      rule_0 = ''.join(char for char in rule[0] if char.isupper())
+      rule_1 = ''.join(char for char in rule[1] if char.isupper())
+      rules_non_terminal.append([rule_0, rule_1])
+    
+    modified = False
+    for rule in rules_non_terminal:
+      if (rule[0] in used):
+        for non_terminal in rule[1]:
+          if (non_terminal not in used):
+            modified = True
+            used.add(non_terminal)
+
+    while modified:
+      modified = False
+      for rule in rules_non_terminal:
+        if (rule[0] in used):
+          for non_terminal in rule[1]:
+            if (non_terminal not in used):
+              modified = True
+              used.add(non_terminal)
+
+    new_non_terminals = []
+    for non_terminal in self.non_terminals:
+      if (non_terminal in used):
+        new_non_terminals.append(non_terminal)
+    self.non_terminals = new_non_terminals
+
+    new_rules = []
+    for i, rule in enumerate(self.rules):
+      ok = True
+      for letter in rule[0] + rule[1]:
+        if (not(letter.islower() or letter in used)):
+          ok = False
+          break
+      if (ok):
+        new_rules.append(rule)
+    self.rules = new_rules
+    
+  def homskyyi_do(self):
+    self.delete_not_generative()
+    self.delete_unreachable()
 
   @staticmethod
   def default_grammar1():
@@ -95,3 +207,25 @@ class Grammar:
     terminals = ["a", "b"]
     rules = [("S", "T"), ("S", "bT"), ("T", "aTb"), ("T", "")]
     return Grammar(non_terminals, terminals, rules, start_terminal)
+
+  @staticmethod
+  def default_grammar3():
+    start_terminal = "S"
+    non_terminals = ["S", "F", "G"]
+    terminals = ["a", "b"]
+    rules = [("S", "aFbF"), ("F", "aFb"), ("F", ""), ("F", "Ga"), ("G", "bSG")]
+    return Grammar(non_terminals, terminals, rules, start_terminal)
+
+  @staticmethod
+  def default_grammar4():
+    start_terminal = "S"
+    non_terminals = ["S", "A", "B", "C"]
+    terminals = ["a", "b"]
+    rules = [("S", "aA"), ("A", "a"), ("B", "b")]
+    return Grammar(non_terminals, terminals, rules, start_terminal)
+  
+def get_copy_of_grammar(grammar: Grammar):
+  copy = grammar
+  copy.found_words = set()
+  copy.used = set()
+  return copy
