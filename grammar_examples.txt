@@ -47,3 +47,43 @@ S
 A B D S
 a b c d e
 S->A, A->AD, S->, D->Ab, A->
+
+S
+A S
+a b c
+S->aA, S->, A->bAA, S->cb, A->a, A->aSS
+
+S
+A B D S
+a b c
+S->AA, S->, A->, A->bA, S->, S->S
+
+S
+A B S
+a b c
+S->A, A->S, S->b, A->, A->aAb, A->a
+
+S
+A S
+a b c
+S->A, A->c, S->SSA, A->, A->cab
+
+S
+A S B D
+a c
+A->DA, A->a, A->c, B->a, D->c, S->DA, S->a
+
+S
+A S
+a b c
+A->, A->, S->, S->, S->SS
+
+S
+A S B D
+b
+B->b, D->SA, S->AD, S->b
+
+S
+A B S
+a b c
+A->S, B->, B->SbA, S->A, S->ASA, S->b
