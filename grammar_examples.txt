@@ -7,3 +7,43 @@ S
 A B S
 a b c d e
 S->bBe, A->aA, A->e, B->aAA
+
+S
+A S
+a b c
+S->ASa, A->cA, S->Acc, S->Ac
+
+S
+A S
+a b c
+S->S, S->AA, S->, A->
+
+S
+A S
+a b c d e
+S->Ade, S->, A->, A->A, A->, S->ab
+
+S
+A S
+a b c d
+S->SS, S->, S->ASA, S->Adb
+
+S
+A B S
+a b c d
+S->SSb, S->Sb, S->B, B->db, B->
+
+S
+A S
+a b c d
+S->ac, S->A, S->, A->dSc, A->AS
+
+S
+A B S
+a b c d e
+S->AA, B->, A->, B->A, A->ecS
+
+S
+A B D S
+a b c d e
+S->A, A->AD, S->, D->Ab, A->
