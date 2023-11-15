@@ -87,3 +87,18 @@ S
 A B S
 a b c
 A->S, B->, B->SbA, S->A, S->ASA, S->b
+
+S
+S A
+a
+S->A, A->S, A->a
+
+S
+A B C D S
+a b c d e
+C->DD, C->Sd, D->, D->DCC, S->Ceb
+
+S
+A S
+a b c
+A->, A->Saa, S->, S->Aa, S->SS, S->SSA
