@@ -1,2 +1,2 @@
-CAPS_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUV"
-ALPHABET = "abcdefghijklmnopqrsuvwxyz"
+CAPS_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+ALPHABET = "abcdefghijklmnopqrstuvwxyz"
