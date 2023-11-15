@@ -332,14 +332,14 @@ class Grammar:
 
   def make_closure(self, current_start: str):
     temp = self.rules.copy()
-    self.used_closure[current_start] = True
+    self.used_closure[current_start] = 1
 
     to_remove = []
     to_add = []
     for rule in temp:
       if (rule[0] == current_start and rule[1] != "" and
           rule[1].isupper() and len(rule[1]) != 2):
-        if (not self.used_closure[rule[1]]):
+        if (self.used_closure[rule[1]] == 0):
           self.make_closure(rule[1])
         togo = self.find_endpoints(rule[1])
         for vertex in togo:
@@ -353,12 +353,87 @@ class Grammar:
     for rule in to_add:
      if (rule not in self.rules):
         self.rules.append(rule)
+    
+    self.used_closure[current_start] = 1
 
+  def dfs_cycle(self, non_terminal: str):
+    self.used_cycle[non_terminal] = 1
+
+    for rule in self.rules:
+      if (rule[0] != non_terminal):
+        continue
+      if (len(rule[1]) == 2 or rule[1].islower()):
+        continue
+      if (rule[1] == ""):
+        continue
+      self.parents[rule[1]] = non_terminal
+
+      if (self.used_cycle[rule[1]] == 1):
+        return non_terminal
+      elif (self.used_cycle[rule[1]] == 0):
+        temp_ans = self.dfs_cycle(rule[1])
+        if (temp_ans != None):
+          return temp_ans
+    self.used_cycle[non_terminal] = 2
+    return None
+
+  def has_cycle(self):
+    self.used_cycle = {}
+    self.parents = {}
+    for non_terminal in self.non_terminals:
+      self.used_cycle[non_terminal] = 0
+    ans = None
+    for non_terminal in self.non_terminals:
+      ans = self.dfs_cycle(non_terminal)
+      if (ans != None):
+        break 
+
+    if (ans == None):
+      return False
+    
+    cycle = set(ans)
+    current_vertex = self.parents[ans]
+    while (current_vertex != ans):
+      cycle.add(current_vertex)
+      current_vertex = self.parents[current_vertex]
+    
+    new_name = CAPS_ALPHABET[0]
+    for i in range(1, len(CAPS_ALPHABET)):
+      if (new_name in self.non_terminals):
+        new_name = CAPS_ALPHABET[i]
+
+    if (self.start_terminal in cycle):
+      new_name = self.start_terminal
+
+    new_rules = []
+    for rule in self.rules:
+      new_rule = rule
+      for non_terminal in cycle:
+        new_rule = (
+          new_rule[0].replace(non_terminal, new_name),
+          new_rule[1].replace(non_terminal, new_name)
+        )
+      new_rules.append(new_rule)
+
+    new_non_terminals = [new_name]
+
+    for non_terminal in self.non_terminals:
+      if (non_terminal not in cycle):
+        new_non_terminals.append(non_terminal)
+    self.non_terminals = new_non_terminals
+    
+    self.rules = new_rules
+    self.remove_conflicts()
+    return True
 
   def transitive_closure(self):
+    found = self.has_cycle()
+    while (found):
+      found = self.has_cycle()
+
     self.used_closure = {}
     for non_terminal in self.non_terminals:
-      self.used_closure[non_terminal] = False
+      self.used_closure[non_terminal] = 0
 
     for non_terminal in self.non_terminals:
       self.make_closure(non_terminal)
