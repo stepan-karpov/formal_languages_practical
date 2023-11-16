@@ -2,7 +2,7 @@
 
 This repository contains the implementation of a practical assignment. Specifically, it comprises the following:
 
-* Cock-Younger-Kasami algorithm
+* Cocke-Younger-Kasami algorithm
 * Early algorithm
 * LR(1) algorithm (to be completed)
 
@@ -16,12 +16,12 @@ This file includes the ```Grammar``` class, which implements algorithms. To use 
 
 #### [chomsky_tests.py](chomsky_tests.py)
 
-This file includes tests for the ```Grammar``` class. There is a check for 1000 random grammars for chomksy normal form and Cock-Younger-Kasami algorithm. To understand which words can be deduced in our grammar, we simply use backtracking with depth specified in the brackets (you can see it in the functions). When we have list of these words, we initiate chomsky normal form algorithm and check if the recognition of each words stays the same with Cock-Younger-Kasami algorithm.
+This file includes tests for the ```Grammar``` class. There is a check for 1000 random grammars for chomksy normal form and Cocke-Younger-Kasami algorithm. To understand which words can be deduced in our grammar, we simply use backtracking with depth specified in the brackets (you can see it in the functions). When we have list of these words, we initiate chomsky normal form algorithm and check if the recognition of each words stays the same with Cocke-Younger-Kasami algorithm.
 
 All you have to to do run tests is simply run [chomsky_tests.py](chomsky_tests.py)
 
 #### [early_tests.py](early_tests.py)
 
-This file includes tests for the ```Grammar``` class. There is a check for 1000 random grammars for Early algorithm. Since we've already checked correctness of Cock-Younger-Kasami algorithm, run both Early and Cock-Younger-Kasami algorithms on small word (with length <= 5) and the test will be passed if recognition stays the same
+This file includes tests for the ```Grammar``` class. There is a check for 1000 random grammars for Early algorithm. Since we've already checked correctness of Cocke-Younger-Kasami algorithm, run both Early and Cocke-Younger-Kasami algorithms on small word (with length <= 5) and the test will be passed if recognition stays the same
 
 All you have to to do run tests is simply run [early_tests.py](early_tests.py)
