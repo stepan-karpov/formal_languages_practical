@@ -79,6 +79,7 @@ test_default1_chomsky()
 test_default2_chomsky()
 test_default3_chomsky()
 test_default4_chomsky()
+test_default5_chomsky()
 
 tests = 1000
 for i in range(0, tests):
