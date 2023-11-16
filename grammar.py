@@ -504,6 +504,100 @@ class Grammar:
     
     return dp[pos[self.start_terminal]][0][n]
 
+  def predict(self, situations, j):
+    to_adds = []
+    for situation in situations[j]:
+      from_pos = situation[0]
+      to_pos = situation[1]
+      ind_pos = situation[2]
+      dot_index = to_pos.index(".")
+      if (dot_index != len(to_pos) - 1 and to_pos[dot_index + 1].isupper()):
+        next_source = to_pos[dot_index + 1]
+        for rule in self.rules_from_terminal[next_source]:
+          to_adds.append((next_source, "." + rule, j))
+    added = False
+    for to_add in to_adds:
+      if (to_add not in situations[j]):
+        situations[j].append(to_add)
+        added = True
+    return added
+  
+  def scan(self, situations, j, word):
+    to_adds = []
+    for situation in situations[j]:
+      from_pos = situation[0]
+      to_pos = situation[1]
+      ind_pos = situation[2]
+      dot_index = to_pos.index(".")
+      if (dot_index != len(to_pos) - 1 and to_pos[dot_index + 1].islower()):
+        if (to_pos[dot_index + 1] == word[j]):
+          to_adds.append((from_pos, to_pos[:dot_index] + to_pos[dot_index + 1] + "." + to_pos[dot_index + 2:], ind_pos))
+    for to_add in to_adds:
+      if (to_add not in situations[j + 1]):
+        situations[j + 1].append(to_add)
+  
+  def find_sources(self, situations, k, non_terminal):
+    answer = []
+    for situation in situations[k]:
+      to_pos = situation[1]
+      dot_index = to_pos.index(".")
+      if (dot_index != len(to_pos) - 1 and to_pos[dot_index + 1] == non_terminal):
+        answer.append(situation)
+    return answer
+
+  def complete(self, situations, j):
+    to_adds = []
+    for situation in situations[j]:
+      from_pos = situation[0]
+      to_pos = situation[1]
+      ind_pos = situation[2]
+      if (to_pos.index(".") != len(to_pos) - 1):
+        continue
+      for source in self.find_sources(situations, ind_pos, from_pos):
+        dot_index = source[1].index(".")
+        to_adds.append((source[0], source[1][:dot_index]
+                        + source[1][dot_index + 1] + "."
+                        + source[1][dot_index + 2:], source[2]))
+    added = False
+    for to_add in to_adds:
+      if (to_add not in situations[j]):
+        situations[j].append(to_add)
+        added = True
+    return added
+
+  def early_iteration(self, situations, i):
+    changes = self.complete(situations, i)
+    changes |= self.predict(situations, i)
+    while (changes):
+      changes = self.complete(situations, i)
+      changes |= self.predict(situations, i)
+
+  def early_check(self, word):
+    if (word == ""):
+      return self.has_eps()
+    # 0 is analogy of S' in handwritten rules
+    self.rules.append(("0", "S"))
+    self.non_terminals.append("0")
+
+    self.rules_from_terminal = {}
+    for non_terminal in self.non_terminals:
+      self.rules_from_terminal[non_terminal] = []
+
+    for rule in self.rules:
+      self.rules_from_terminal[rule[0]].append(rule[1])
+    
+    situations = [[] for _ in range(len(word) + 1)]
+
+    situations[0].append(("0", ".S", 0))
+
+    self.early_iteration(situations, 0)
+    for i in range(1, len(word) + 1):
+      self.scan(situations, i - 1, word)
+      self.early_iteration(situations, i)
+
+    self.rules.remove(("0", "S"))
+    self.non_terminals.remove("0")
+    return ("0", "S.", 0) in situations[-1]
 
   @staticmethod
   def default_grammar1():
@@ -535,6 +629,14 @@ class Grammar:
     non_terminals = ["S", "A", "B", "C"]
     terminals = ["a", "b"]
     rules = [("S", "aA"), ("A", "a"), ("B", "b")]
+    return Grammar(non_terminals, terminals, rules, start_terminal)
+
+  @staticmethod
+  def default_grammar5():
+    start_terminal = "S"
+    non_terminals = ["S", "F"]
+    terminals = ["a", "b"]
+    rules = [("S", "a"), ("S", "aFbF"), ("F", "aFb"), ("F", "")]
     return Grammar(non_terminals, terminals, rules, start_terminal)
   
 def get_copy_of_grammar(grammar: Grammar):
