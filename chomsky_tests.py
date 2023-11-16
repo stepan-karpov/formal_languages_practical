@@ -53,6 +53,19 @@ def test_default4_chomsky():
             assert False
     print("test with default grammar4 passed")
 
+def test_default5_chomsky():
+    initial_grammar = Grammar.default_grammar5()
+    words_step1 = initial_grammar.backtrack_words(7)
+
+    grammar_to_change = get_copy_of_grammar(initial_grammar)
+    grammar_to_change.chomsky_do()
+    assert grammar_to_change.has_eps() == initial_grammar.has_eps()
+    words_step2 = grammar_to_change.backtrack_words(3)
+    for word in words_step2:
+        if (word not in words_step1):
+            assert False
+    print("test with default grammar5 passed")
+
 def test_cocke_younger_kasami_check():
     grammar = Grammar.generate_random_grammar()
     init = grammar.copy()
