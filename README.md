@@ -44,3 +44,6 @@ This file includes tests for the ```Grammar``` class. There is a check for 7 ran
 All you have to to do run tests is simply run [lr1_tests.py](lr1_tests.py)
 
 
+#### Testing
+
+to test this framework, run ```coverage run -m pytest chomsky_tests.py early_tests.py lr1_tests.py``` and ```coverage report -m >> coverage.txt``` and you'll see testing information
