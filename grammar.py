@@ -16,6 +16,7 @@ class Grammar:
     self.found_words = set()
     self.used = set()
     self.in_normal_form = False
+    self.isLR1 = True
 
   def copy(self):
     non_terminals = self.non_terminals.copy()
@@ -330,7 +331,7 @@ class Grammar:
         ans.append(rule[1])
     return ans
 
-  def make_closure(self, current_start: str):
+  def chomsky_make_closure(self, current_start: str):
     temp = self.rules.copy()
     self.used_closure[current_start] = 1
 
@@ -340,7 +341,7 @@ class Grammar:
       if (rule[0] == current_start and rule[1] != "" and
           rule[1].isupper() and len(rule[1]) != 2):
         if (self.used_closure[rule[1]] == 0):
-          self.make_closure(rule[1])
+          self.chomsky_make_closure(rule[1])
         togo = self.find_endpoints(rule[1])
         for vertex in togo:
           to_add.append((rule[0], vertex))
@@ -436,7 +437,7 @@ class Grammar:
       self.used_closure[non_terminal] = 0
 
     for non_terminal in self.non_terminals:
-      self.make_closure(non_terminal)
+      self.chomsky_make_closure(non_terminal)
 
   def remove_conflicts(self):
     for non_terminal in self.non_terminals:
@@ -504,7 +505,15 @@ class Grammar:
     
     return dp[pos[self.start_terminal]][0][n]
 
-  def predict(self, situations, j):
+  def calc_rules_from_terminal(self):
+    self.rules_from_terminal = {}
+    for non_terminal in self.non_terminals:
+      self.rules_from_terminal[non_terminal] = []
+
+    for rule in self.rules:
+      self.rules_from_terminal[rule[0]].append(rule[1])
+
+  def early_predict(self, situations, j):
     to_adds = []
     for situation in situations[j]:
       from_pos = situation[0]
@@ -522,7 +531,7 @@ class Grammar:
         added = True
     return added
   
-  def scan(self, situations, j, word):
+  def early_scan(self, situations, j, word):
     to_adds = []
     for situation in situations[j]:
       from_pos = situation[0]
@@ -536,7 +545,7 @@ class Grammar:
       if (to_add not in situations[j + 1]):
         situations[j + 1].append(to_add)
   
-  def find_sources(self, situations, k, non_terminal):
+  def early_find_sources(self, situations, k, non_terminal):
     answer = []
     for situation in situations[k]:
       to_pos = situation[1]
@@ -545,7 +554,7 @@ class Grammar:
         answer.append(situation)
     return answer
 
-  def complete(self, situations, j):
+  def early_complete(self, situations, j):
     to_adds = []
     for situation in situations[j]:
       from_pos = situation[0]
@@ -553,7 +562,7 @@ class Grammar:
       ind_pos = situation[2]
       if (to_pos.index(".") != len(to_pos) - 1):
         continue
-      for source in self.find_sources(situations, ind_pos, from_pos):
+      for source in self.early_find_sources(situations, ind_pos, from_pos):
         dot_index = source[1].index(".")
         to_adds.append((source[0], source[1][:dot_index]
                         + source[1][dot_index + 1] + "."
@@ -566,11 +575,11 @@ class Grammar:
     return added
 
   def early_iteration(self, situations, i):
-    changes = self.complete(situations, i)
-    changes |= self.predict(situations, i)
+    changes = self.early_complete(situations, i)
+    changes |= self.early_predict(situations, i)
     while (changes):
-      changes = self.complete(situations, i)
-      changes |= self.predict(situations, i)
+      changes = self.early_complete(situations, i)
+      changes |= self.early_predict(situations, i)
 
   def early_check(self, word):
     if (word == ""):
@@ -579,12 +588,7 @@ class Grammar:
     self.rules.append(("0", "S"))
     self.non_terminals.append("0")
 
-    self.rules_from_terminal = {}
-    for non_terminal in self.non_terminals:
-      self.rules_from_terminal[non_terminal] = []
-
-    for rule in self.rules:
-      self.rules_from_terminal[rule[0]].append(rule[1])
+    self.calc_rules_from_terminal()
     
     situations = [[] for _ in range(len(word) + 1)]
 
@@ -592,12 +596,217 @@ class Grammar:
 
     self.early_iteration(situations, 0)
     for i in range(1, len(word) + 1):
-      self.scan(situations, i - 1, word)
+      self.early_scan(situations, i - 1, word)
       self.early_iteration(situations, i)
 
     self.rules.remove(("0", "S"))
     self.non_terminals.remove("0")
     return ("0", "S.", 0) in situations[-1]
+
+  def lr1_precalc_first_dfs(self, non_terminal):
+    if (non_terminal in self.first.keys()):
+      return self.first[non_terminal]
+    
+    self.first[non_terminal] = []
+    for rule in self.rules:
+      if (rule[0] == non_terminal):
+        if (len(rule[1]) == 0):
+          self.first[non_terminal].append("$")
+        else:
+          self.first[non_terminal].extend(self.lr1_precalc_first_dfs(rule[1][0]))
+    return self.first[non_terminal]
+
+  def lr1_first_precalc(self):
+    self.first = {"": "$", "$": "$"}
+    for terminal in self.terminals:
+      self.first[terminal] = [terminal]
+
+    for non_terminal in self.non_terminals:
+      self.lr1_precalc_first_dfs(non_terminal)
+
+  def lr1_get_first_from_word(self, word):
+    for letter in word:
+      if (self.first[letter] != []):
+        return self.first[letter]
+    return ["$"]
+
+  def lr1_closure(self, vertex):
+    new_vertex = vertex
+    for rule in vertex:
+      to_pos = rule[1]
+      first_pos = rule[2]
+      dot_pos = to_pos.index(".")
+      if (dot_pos != len(to_pos) - 1 and to_pos[dot_pos + 1].isupper()):
+        new_start = to_pos[dot_pos + 1]
+        next_firsts = self.lr1_get_first_from_word(to_pos[dot_pos + 2:] + first_pos)
+        for from_rule in self.rules_from_terminal[new_start]:
+          for next_first in next_firsts:
+            new_value = (new_start, "." + from_rule, next_first)
+            if (new_value not in new_vertex):
+              new_vertex.extend([new_value])
+    return new_vertex
+
+  def lr1_goto_labels(self, vertex):
+    answer = []
+    for rule in self.lr1_graph[vertex]:
+      to_pos = rule[1]
+      dot_pos = to_pos.index(".")
+      if (dot_pos != len(to_pos) - 1):
+        answer.append(to_pos[dot_pos + 1])
+    return answer
+  
+  def lr1_goto(self, from_vertex, label):
+    new_vertex = []
+    for rule in self.lr1_graph[from_vertex]:
+      if (label not in rule[1]):
+        continue
+      dot_index = rule[1].index(".")
+      if (dot_index != len(rule[1]) - 1 and rule[1][dot_index + 1] == label):
+        new_rule = (rule[0], 
+                    rule[1][:dot_index] + rule[1][dot_index + 1] + "." + rule[1][dot_index + 2:],
+                    rule[2])
+        if (new_rule not in new_vertex):
+          new_vertex.append(new_rule)
+    return new_vertex
+
+  def lr1_build_table(self):
+    self.letters = {"0": 0}
+    pnt = 1
+    for non_terminal in self.non_terminals:
+      if (non_terminal != '0'):
+        self.letters[non_terminal] = pnt
+        pnt += 1
+      
+    for terminal in self.terminals:
+      self.letters[terminal] = pnt
+      pnt += 1
+
+    self.letters["$"] = pnt
+
+
+    self.table = [[None for _ in range(len(self.letters))] for _ in range(len(self.lr1_graph))]
+    # 0 - just a number
+    # 1 - shift
+    # 2 - reduce
+
+    for start, edges in self.edges.items():
+      for to in edges:
+        if (self.table[start][self.letters[to[1]]] != None):
+          self.isLR1 = False
+          assert False and 'Grammar is not LR1!'
+        if (to[1] in self.non_terminals):
+          self.table[start][self.letters[to[1]]] = (0, to[0])
+        else:
+          self.table[start][self.letters[to[1]]] = (1, to[0])
+
+    for start, vertex in enumerate(self.lr1_graph):
+      for rule in vertex:
+        if (rule[1][-1] == '.'):
+          ind = self.rules.index((rule[0], rule[1][:-1]))
+          # if (self.table[start][self.letters[rule[2]]] != None):
+            # continue
+          self.table[start][self.letters[rule[2]]] = (2, ind)
+    return True
+
+  def lr1_reduce(self, word, stack):
+    rule_number = self.table[stack[-1]][self.letters[word[0]]][1]
+    template = self.rules[rule_number][1][::-1]
+    current_word = ""
+    while (len(stack) > 0 and current_word != template):
+      stack.pop()
+      current_word += stack[-1]
+      stack.pop()
+    
+    if (current_word != template):
+      return -1, -1, False
+
+    stack.append(self.rules[rule_number][0])
+    stack.append(self.table[stack[-2]][self.letters[stack[-1]]][1])
+
+    return word, stack, True
+  
+  def lr1_shift(self, word, stack):
+    token = word[0]
+    vertex = stack[-1]
+    table_rule = self.table[vertex][self.letters[token]]
+
+    stack.append(token)
+    stack.append(table_rule[1])
+    return word[1:], stack
+
+  def lr1_read_word(self, word):
+    # word, stack, vertex, token
+    word += "$"
+    stack = [0]
+
+    while (word != ""):
+      token = word[0]
+      vertex = stack[-1]
+      if (self.table[vertex][self.letters[token]] == None):
+        return False
+      if (self.table[vertex][self.letters[token]][0] == 2):
+        if (word == "$" and self.table[vertex][self.letters[token]][1] == 0):
+          return True
+        
+        word, stack, possible = self.lr1_reduce(word, stack)
+        if (not possible):
+          return False
+      else:
+        word, stack = self.lr1_shift(word, stack)
+
+    return True
+
+  def lr1_check(self, word):
+    self.remove_conflicts()
+    self.clear_useless_letters()
+    if (word == ""):
+      return self.has_eps()
+    for letter in word:
+      if (letter not in self.terminals):
+        return False
+    # 0 is analogy of S' in handwritten rules
+    self.rules.insert(0, ("0", "S"))
+    self.non_terminals.append("0")
+    self.lr1_first_precalc()
+
+    self.calc_rules_from_terminal()
+
+    self.lr1_graph = [[]]
+    self.edges = {0: []}
+
+    self.lr1_graph[0].append(("0", ".S", "$"))
+    
+    queue = [0]
+
+    while (len(queue) > 0):
+      current_vertex = queue[0]
+      queue.pop(0)
+      self.lr1_graph[current_vertex] = self.lr1_closure(self.lr1_graph[current_vertex])
+      labels = list(set((self.lr1_goto_labels(current_vertex))))
+      labels.sort() # for debug
+      for label in labels:
+        new_vertex = self.lr1_goto(current_vertex, label)
+        new_vertex = self.lr1_closure(new_vertex)
+        new_vertex.sort()
+        found = False
+        for i, el in enumerate(self.lr1_graph):
+          if (el == new_vertex):
+            found = True
+            self.edges[current_vertex].append((i, label))
+        if (not found):
+          self.lr1_graph.append(new_vertex)
+          self.edges[current_vertex].append((len(self.lr1_graph) - 1, label))
+          self.edges[len(self.lr1_graph) - 1] = []
+          queue.append(len(self.lr1_graph) - 1)
+
+    if (not self.lr1_build_table()):
+      return False
+
+    answer = self.lr1_read_word(word)
+
+    self.rules.remove(("0", "S"))
+    self.non_terminals.remove("0")
+    return answer
 
   @staticmethod
   def default_grammar1():
@@ -637,6 +846,22 @@ class Grammar:
     non_terminals = ["S", "F"]
     terminals = ["a", "b"]
     rules = [("S", "a"), ("S", "aFbF"), ("F", "aFb"), ("F", "")]
+    return Grammar(non_terminals, terminals, rules, start_terminal)
+
+  @staticmethod
+  def default_grammar6():
+    start_terminal = "S"
+    non_terminals = ["S", "T"]
+    terminals = ["a", "b", "c"]
+    rules = [("S", "a"), ("S", "b"), ("S", "c"), ("T", "S")]
+    return Grammar(non_terminals, terminals, rules, start_terminal)
+
+  @staticmethod
+  def default_grammar7():
+    start_terminal = "S"
+    non_terminals = ["S"]
+    terminals = ["a", "b"]
+    rules = [("S", "SaSb"), ("S", "")]
     return Grammar(non_terminals, terminals, rules, start_terminal)
   
 def get_copy_of_grammar(grammar: Grammar):
