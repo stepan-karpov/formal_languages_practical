@@ -15,6 +15,7 @@ def test_default1_lr1():
     for word in small_words:
         check1 = initial_grammar.lr1_check(word)
         check2 = initial_grammar.early_check(word)
+        check3 = initial_grammar.cocke_younger_kasami_check(word)
         assert check1 == check2
     print("test with default grammar1 passed")
 
@@ -24,6 +25,7 @@ def test_default1_lr2():
     for word in small_words:
         check1 = initial_grammar.lr1_check(word)
         check2 = initial_grammar.early_check(word)
+        check3 = initial_grammar.cocke_younger_kasami_check(word)
         assert check1 == check2
     print("test with default grammar2 passed")
 
@@ -33,6 +35,7 @@ def test_default1_lr3():
     for word in small_words:
         check1 = initial_grammar.lr1_check(word)
         check2 = initial_grammar.early_check(word)
+        check3 = initial_grammar.cocke_younger_kasami_check(word)
         assert check1 == check2
     print("test with default grammar3 passed")
 
@@ -42,6 +45,7 @@ def test_default1_lr4():
     for word in small_words:
         check1 = initial_grammar.lr1_check(word)
         check2 = initial_grammar.early_check(word)
+        check3 = initial_grammar.cocke_younger_kasami_check(word)
         assert check1 == check2
     print("test with default grammar4 passed")
 
@@ -51,6 +55,7 @@ def test_default1_lr5():
     for word in small_words:
         check1 = initial_grammar.lr1_check(word)
         check2 = initial_grammar.early_check(word)
+        check3 = initial_grammar.cocke_younger_kasami_check(word)
         assert check1 == check2
     print("test with default grammar5 passed")
 
@@ -60,6 +65,7 @@ def test_default1_lr6():
     for word in small_words:
         check1 = initial_grammar.lr1_check(word)
         check2 = initial_grammar.early_check(word)
+        check3 = initial_grammar.cocke_younger_kasami_check(word)
         assert check1 == check2
     print("test with default grammar6 passed")
 
@@ -69,6 +75,7 @@ def test_default1_lr7():
     for word in small_words:
         check1 = initial_grammar.lr1_check(word)
         check2 = initial_grammar.early_check(word)
+        check3 = initial_grammar.cocke_younger_kasami_check(word)
         assert check1 == check2
     print("test with default grammar7 passed")
 
@@ -78,20 +85,6 @@ def test_lr1_check():
     for word in small_words:
         check1 = grammar.lr1_check(word)
         check2 = grammar.early_check(word)
-        # print(word)
-        assert check1 == check2
-
-def read_test_lr1_check():
-    grammar = Grammar()
-    grammar.read_grammar()
-
-    print(grammar.lr1_check("bbccc"))
-    
-
-    for word in small_words:
-        check1 = grammar.lr1_check(word)
-        check2 = grammar.early_check(word)
-        print(word)
         assert check1 == check2
 
 generate_words("")
@@ -103,6 +96,4 @@ test_default1_lr4()
 test_default1_lr5()
 test_default1_lr6()
 test_default1_lr7()
-
-print("7 tests passed")
 
