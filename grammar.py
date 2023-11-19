@@ -1,11 +1,6 @@
 from constants import *
 import random
 
-def shuffle_string(input_string: str) -> list:
-    char_list = list(input_string)
-    random.shuffle(char_list)
-    return char_list
-
 class Grammar:
   def __init__(self, non_terminals=[], terminals=[], rules=[], start_terminal="S"):
     """ terminals, non_terminals, start terminal is always S """
