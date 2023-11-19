@@ -102,3 +102,28 @@ S
 A S
 a b c
 A->, A->Saa, S->, S->Aa, S->SS, S->SSA
+
+S
+A B S
+a b c
+A->, A->c, B->, S->ASB, S->BA
+
+S
+A S
+a b c
+A->, A->Ab, A->b, S->Aa, S->SA, S->bb
+
+S
+A S
+a b c
+A->, A->AS, A->c, S->Ab
+
+S
+A B S
+a b c
+A->, S->bS, S->c, S->cSS
+
+S
+S
+b c
+S->bS, S->c, S->cSS
