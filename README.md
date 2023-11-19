@@ -8,6 +8,17 @@ This repository contains the implementation of a practical assignment. Specifica
 
 Here is a description of files in this repository:
 
+#### [main.py](main.py)
+
+If you're lazy enough to read README.md down below, run this python script and it will show you results of LR1, Early and Cocke-Younger-Kasami algorithms for recognition of the word you input. Don't forget to follow format! Here is an example of input for main.py:
+```
+S
+S A B C
+a b c
+S->a, S->b, S->c
+abcd
+```
+
 #### [grammar.py](grammar.py)
 
 This file includes the ```Grammar``` class, which implements algorithms. To use it, simply call ```my_grammar = Grammar()``` to create Grammar instance. You can input your grammar by calling ```my_grammar.read_grammar()```. The grammar input format is described in [grammar_examples.txt](grammar_examples.txt). Here is a brief description: the first line should input the start non-terminal symbol, followed by a line containing all non-terminal symbols, then input all terminal symbols, and finally, include all rules separated by ```,```. 
@@ -25,3 +36,11 @@ All you have to to do run tests is simply run [chomsky_tests.py](chomsky_tests.p
 This file includes tests for the ```Grammar``` class. There is a check for 1000 random grammars for Early algorithm. Since we've already checked correctness of Cocke-Younger-Kasami algorithm, run both Early and Cocke-Younger-Kasami algorithms on small word (with length <= 5) and the test will be passed if recognition stays the same
 
 All you have to to do run tests is simply run [early_tests.py](early_tests.py)
+
+#### [lr1_tests.py](lr1_tests.py)
+
+This file includes tests for the ```Grammar``` class. There is a check for 7 random grammars for LR1 recognition algorithm. Since we've already checked correctness of Early algorithm, run both Early and LR1 algorithms on small word (with length <= 5) and the test will be passed if recognition stays the same
+
+All you have to to do run tests is simply run [lr1_tests.py](lr1_tests.py)
+
+
